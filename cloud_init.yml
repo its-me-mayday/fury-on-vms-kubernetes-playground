@@ -1,0 +1,26 @@
+#cloud-config
+users:
+  - name: fury_user
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    groups: sudo
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCh5kCjq7qTdXczkuKbFQZdHEy1tmiM/U95iB5RlWn36DDzXlU6pO2EO+9oKM8eNX77Qm1edeHUPT43KDxmrez2SH1yYCYdLOtlgDQHnmaUh/4M9T1iP5ZpQVyoqKwgMFLthPq576N/UfXF5bVFW1vB9UCoF5Xj2cBidHt3BzZZZjj6+tLenFuXrAJP7nQGmN0qAWw3pcPvbJ+oR71L0INCS5VMUPQntCNYRaSBDspFzGpHg/jYEK4ye2JfkMkdIhd9QJtwccHHgJKo6wfe93jcL2lDvWgyO1RE8ytF7MKWvPYvCqcWVgGOinBlRZNXmY3RESWEsmC+DohaQGyaPUO4R4DEax/MINotNoPxNZCB3OqEBi3bAClaU75TCsv1lbmViiG38LfztbF4qPoqoWgYgHQimLNo2r6xqE1xErEo/qfv3wfMUh8S0cUdn0nKKNYhxoh1i31/1/Z60U4ANPVf4akPAmDYmG6uL9qjo7vjTyrnYDs9bVzPSTMq32TyC18= lmaggio@lmaggio
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - gnupg-agent
+  - curl
+  - software-properties-common
+  - containerd
+runcmd:
+  - apt-get update
+  - systemctl enable containerd.service
+  - containerd config default | sed 's/SystemdCgroup = false/SystemdCgroup = true/' > /etc/containerd/config.toml
+  - swapoff -a
+  - sed -i '/swap/ s/^/#/' /etc/fstab
+  - curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  - echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' > /etc/apt/sources.list.d/kubernetes.list
+  - apt-get update
+  - apt-get install -y kubelet=1.29.14 kubeadm=1.29.14 kubectl=1.29.14
+  - apt-mark hold kubelet kubeadm kubectl
